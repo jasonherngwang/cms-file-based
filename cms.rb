@@ -6,9 +6,21 @@ require "tilt/erubis"
 configure do
   enable :sessions
   set :session_secret, "secret"
-  set :erb, :escape_html => true
+  set :erb, escape_html: true
 end
 
+root = File.expand_path("..", __FILE__)
+
 get "/" do
-  "Getting started."
+  @files = Dir[root + "/data/*"]
+           .select { |f| File.file? f }
+           .map { |f| File.basename f }
+
+  erb :index, layout: :layout
+end
+
+get "/:filename" do
+  file_path = root + "/data/" + params[:filename]
+  headers["Content-Type"] = "text/plain"
+  File.read(file_path)
 end
