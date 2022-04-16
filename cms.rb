@@ -9,6 +9,12 @@ configure do
   set :erb, :escape_html => true
 end
 
+root = File.expand_path("..", __FILE__)
+
 get "/" do
-  "Getting started."
+  @files = Dir[root + "/data/*"]
+    .select { |f| File.file? f }
+    .map { |f| File.basename f }
+
+    erb :index, layout: :layout
 end
