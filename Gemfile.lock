@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     erubis (2.7.0)
+    minitest (5.15.0)
     multi_json (1.15.0)
     mustermann (1.1.1)
       ruby2_keywords (~> 0.0.1)
@@ -11,6 +12,8 @@ GEM
     rack (2.2.3)
     rack-protection (2.2.0)
       rack
+    rack-test (1.1.0)
+      rack (>= 1.0, < 3)
     ruby2_keywords (0.0.5)
     sinatra (2.2.0)
       mustermann (~> 1.0)
@@ -30,7 +33,9 @@ PLATFORMS
 
 DEPENDENCIES
   erubis
+  minitest
   puma
+  rack-test
   sinatra
   sinatra-contrib
 
