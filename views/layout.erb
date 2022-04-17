@@ -8,6 +8,13 @@
     <header>
       <h1>Files</h1>
     </header>
+
+    <% if session[:message] %>
+      <div>
+        <p><%= session.delete(:message) %></p>
+      </div>
+    <% end %>
+
     <main>
       <%== yield %>
     </main>
