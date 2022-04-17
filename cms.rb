@@ -27,7 +27,8 @@ def load_file_contents(file_path)
   contents = File.read(file_path)
 
   case File.extname file_path
-  when ".txt"
+  # In case the file does not have an extension.
+  when ".txt", ""
     headers["Content-Type"] = "text/plain"
     contents
   when ".md"
@@ -44,6 +45,27 @@ get "/" do
   erb :index, layout: :layout
 end
 
+get "/new" do
+  erb :new_document, layout: :layout
+end
+
+post "/new" do
+  filename = params[:filename]
+
+  if filename.empty?
+    session[:message] = "A name is required."
+    status 422
+    erb :new_document, layout: :layout
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+    session[:message] = "#{filename} was created."
+
+    redirect "/"
+  end
+end
+
 get "/:filename" do
   file_path = File.join(data_path, params[:filename])
   
@@ -56,15 +78,15 @@ get "/:filename" do
 end
 
 get "/:filename/edit" do
-  file_path = File.join(data_path, + params[:filename])
+  file_path = File.join(data_path, params[:filename])
   @content = File.read(file_path)
   
-  erb :edit_file, layout: :layout
+  erb :edit_document, layout: :layout
 end
 
 post "/:filename" do
   content = params[:content]
-  file_path = File.join(data_path, + params[:filename])
+  file_path = File.join(data_path, params[:filename])
   File.open(file_path, "w") do |f|
     f.write content
   end

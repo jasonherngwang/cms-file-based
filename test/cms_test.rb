@@ -66,7 +66,7 @@ class CMSTest < Minitest::Test
 
   def test_document_not_found
     get "/a.txt"
-    
+
     assert_equal 302, last_response.status
     
     # Follow the redirect.
@@ -113,5 +113,38 @@ class CMSTest < Minitest::Test
     assert_equal 200, last_response.status
     assert_equal "text/plain", last_response["Content-Type"]
     assert_includes last_response.body, "New content"
+  end
+
+  def test_add_document_form
+    get "/new"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "Add a new document:"
+    assert_includes last_response.body, "<input"
+    assert_includes last_response.body, "button type=\"submit\""
+  end
+
+  def test_invalid_document_name
+    post "/new", filename: ""
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "A name is required."
+  end
+
+  def test_added_document
+    post "/new", filename: "newdocument.txt"
+
+    assert_equal 302, last_response.status
+
+    get last_response["Location"]
+    
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "newdocument.txt was created."
+
+    get "/"
+    assert_includes last_response.body, "newdocument.txt"
   end
 end
