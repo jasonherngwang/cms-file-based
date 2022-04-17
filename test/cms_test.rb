@@ -128,7 +128,7 @@ class CMSTest < Minitest::Test
   def test_invalid_document_name
     post "/new", filename: ""
 
-    assert_equal 200, last_response.status
+    assert_equal 422, last_response.status
     assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
     assert_includes last_response.body, "A name is required."
   end
@@ -146,5 +146,25 @@ class CMSTest < Minitest::Test
 
     get "/"
     assert_includes last_response.body, "newdocument.txt"
+  end
+
+  def test_delete_document
+    create_document "delete_me.txt"
+
+    post "/delete_me.txt/delete"
+
+    assert_equal 302, last_response.status
+
+    get last_response["Location"]
+    
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    assert_includes last_response.body, "delete_me.txt was deleted."
+    
+    get "/"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html;charset=utf-8", last_response["Content-Type"]
+    refute_includes last_response.body, "delete_me.txt"
   end
 end
