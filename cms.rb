@@ -10,7 +10,13 @@ configure do
   set :erb, escape_html: true
 end
 
-root = File.expand_path("..", __FILE__)
+def data_path
+  if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/data", __FILE__)
+  else
+    File.expand_path("../data", __FILE__)
+  end
+end
 
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -31,7 +37,7 @@ def load_file_contents(file_path)
 end
 
 get "/" do
-  @files = Dir[root + "/data/*"]
+  @files = Dir[File.join(data_path, "*")]
            .select { |f| File.file? f }
            .map { |f| File.basename f }
 
@@ -39,7 +45,7 @@ get "/" do
 end
 
 get "/:filename" do
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, params[:filename])
   
   if File.file? file_path
     load_file_contents(file_path)
@@ -50,7 +56,7 @@ get "/:filename" do
 end
 
 get "/:filename/edit" do
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, + params[:filename])
   @content = File.read(file_path)
   
   erb :edit_file, layout: :layout
@@ -58,7 +64,7 @@ end
 
 post "/:filename" do
   content = params[:content]
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, + params[:filename])
   File.open(file_path, "w") do |f|
     f.write content
   end
