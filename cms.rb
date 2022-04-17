@@ -17,7 +17,7 @@ def render_markdown(text)
   markdown.render(text)
 end
 
-def load_file_content(file_path)
+def load_file_contents(file_path)
   contents = File.read(file_path)
 
   case File.extname file_path
@@ -40,11 +40,28 @@ end
 
 get "/:filename" do
   file_path = root + "/data/" + params[:filename]
-
+  
   if File.file? file_path
-    load_file_content(file_path)
+    load_file_contents(file_path)
   else
     session[:message] = "#{params[:filename]} does not exist."
     redirect "/"
   end
+end
+
+get "/:filename/edit" do
+  file_path = root + "/data/" + params[:filename]
+  @content = File.read(file_path)
+  
+  erb :edit_file, layout: :layout
+end
+
+post "/:filename" do
+  content = params[:content]
+  file_path = root + "/data/" + params[:filename]
+  File.open(file_path, "w") do |f|
+    f.write content
+  end
+  session[:message] = "#{params[:filename]} has been updated."
+  redirect "/"
 end
