@@ -37,10 +37,64 @@ def load_file_contents(file_path)
   end
 end
 
+def error_for_signin(user, password)
+  if user.empty? || password.empty?
+    "Username and/or password cannot be empty."
+  elsif user != "admin" || password != "secret"
+    "Invalid Credentials."
+  end
+end
+
+helpers do
+  def logged_in?
+    !!session[:user]
+  end
+end
+
+before do
+  if request.path == "/new" || 
+    request.path =~ /\/.+\/(delete|edit)/
+
+    unless session[:user]
+      redirect "/users/signin"
+    end
+  end
+end
+
+get "/users/signin" do
+  erb :signin, layout: :layout
+end
+
+post "/users/signin" do
+  user = params[:user].to_s.strip
+  password = params[:password].to_s
+
+  error = error_for_signin(user, password)
+  if error
+    session[:message] = error
+    status 422
+
+    erb :signin, layout: :layout
+  else
+    session[:user] = user
+    session[:message] = "Welcome!"
+
+    redirect "/"
+  end
+end
+
+post "/users/signout" do
+  session.delete(:user)
+  session[:message] = "You have been signed out."
+
+  redirect "/"
+end
+
 get "/" do
   @files = Dir[File.join(data_path, "*")]
            .select { |f| File.file? f }
            .map { |f| File.basename f }
+  @user = session[:user] if logged_in?
 
   erb :index, layout: :layout
 end
