@@ -1,8 +1,10 @@
+require "yaml"
 require "sinatra"
 require "sinatra/reloader" if development?
 require "sinatra/content_for"
 require "tilt/erubis"
 require "redcarpet"
+require "bcrypt"
 
 configure do
   enable :sessions
@@ -37,27 +39,44 @@ def load_file_contents(file_path)
   end
 end
 
+def load_user_credentials
+  filepath = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yml", __FILE__)
+  else
+    File.expand_path("../users.yml", __FILE__)
+  end
+  Psych.load_file(filepath)
+end
+
+def valid_credentials?(user, password)
+  credentials = load_user_credentials
+
+  if credentials.key?(user)
+    bcrypt_password = BCrypt::Password.new(credentials[user])
+    bcrypt_password == password
+  else
+    false
+  end
+end
+
 def error_for_signin(user, password)
   if user.empty? || password.empty?
     "Username and/or password cannot be empty."
-  elsif user != "admin" || password != "secret"
+  else
     "Invalid Credentials."
   end
 end
 
-helpers do
-  def logged_in?
-    !!session[:user]
+def require_signin
+  unless signed_in?
+    session[:message] = "You must be signed in to do that."
+    redirect "/users/signin"
   end
 end
 
-before do
-  if request.path == "/new" || 
-    request.path =~ /\/.+\/(delete|edit)/
-
-    unless session[:user]
-      redirect "/users/signin"
-    end
+helpers do
+  def signed_in?
+    session.key?(:user)
   end
 end
 
@@ -66,20 +85,20 @@ get "/users/signin" do
 end
 
 post "/users/signin" do
-  user = params[:user].to_s.strip
-  password = params[:password].to_s
+  user = params[:user]
+  password = params[:password]
 
-  error = error_for_signin(user, password)
-  if error
-    session[:message] = error
-    status 422
-
-    erb :signin, layout: :layout
-  else
+  if valid_credentials?(user, password)
     session[:user] = user
     session[:message] = "Welcome!"
 
     redirect "/"
+  else
+    error = error_for_signin(user, password)
+    session[:message] = error
+    status 422
+
+    erb :signin, layout: :layout
   end
 end
 
@@ -94,16 +113,20 @@ get "/" do
   @files = Dir[File.join(data_path, "*")]
            .select { |f| File.file? f }
            .map { |f| File.basename f }
-  @user = session[:user] if logged_in?
+  @user = session[:user] if signed_in?
 
   erb :index, layout: :layout
 end
 
 get "/new" do
+  require_signin
+
   erb :new_document, layout: :layout
 end
 
 post "/new" do
+  require_signin
+
   filename = params[:filename]
 
   if filename.empty?
@@ -132,6 +155,8 @@ get "/:filename" do
 end
 
 get "/:filename/edit" do
+  require_signin
+
   file_path = File.join(data_path, params[:filename])
   @content = File.read(file_path)
   
@@ -139,6 +164,8 @@ get "/:filename/edit" do
 end
 
 post "/:filename" do
+  require_signin
+
   content = params[:content]
   file_path = File.join(data_path, params[:filename])
   File.open(file_path, "w") do |f|
@@ -149,6 +176,8 @@ post "/:filename" do
 end
 
 post "/:filename/delete" do
+  require_signin
+
   file_path = File.join(data_path, params[:filename])
   File.delete(file_path)
   session[:message] = "#{params[:filename]} was deleted."
